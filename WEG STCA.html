@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestor de Estoque - Loja Elétrica</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #ff8800;
+      --secondary: #333;
+      --bg: #f9f9f9;
+      --surface: #fff;
+      --accent: #e67600;
+      --error: #cc3300;
+      --font: 'Segoe UI', sans-serif;
+      --radius: 6px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--secondary);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--primary);
+      color: var(--surface);
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .header-left img {
+      height: 50px;
+    }
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .panels-wrapper {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+    }
+    .panel {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .panel h2 {
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+    .toolbar button,
+    .toolbar label {
+      background: var(--primary);
+      color: var(--surface);
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.2s;
+      text-decoration: none;
+    }
+    .toolbar button:hover,
+    .toolbar label:hover {
+      background: var(--accent);
+    }
+    .toolbar input[type="file"] {
+      display: none;
+    }
+    #productForm {
+      display: grid;
+      gap: 0.5rem;
+    }
+    #productForm input,
+    #productForm select,
+    #productForm button {
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+    }
+    #productForm button {
+      background: var(--primary);
+      color: var(--surface);
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #productForm button:hover {
+      background: var(--accent);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      overflow-x: auto;
+    }
+    th, td {
+      padding: 0.5rem;
+      border: 1px solid #eee;
+      text-align: center;
+    }
+    th {
+      background: var(--bg);
+      cursor: pointer;
+      user-select: none;
+    }
+    tr.low-stock {
+      background: #fff3cd;
+    }
+    .log {
+      background: var(--surface);
+      border: 1px solid #eee;
+      height: 140px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    canvas {
+      max-width: 100%;
+      height: 200px;
+      margin-top: 0.5rem;
+    }
+    @media (max-width: 800px) {
+      .panels-wrapper {
+        grid-template-columns: 1fr;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <img src="https://ik.imagekit.io/hocwz3xpvv/GARTRAN.jpg?updatedAt=1754388849268" alt="Logo GARTRAN">
+      <div class="header-title">Gestor de Estoque - Loja Elétrica</div>
+    </div>
+  </header>
+  <div class="container">
+    <div class="panels-wrapper">
+      <div class="panel">
+        <h2>Ferramentas</h2>
+        <div class="toolbar">
+          <button id="simulateBtn">Simular Venda</button>
+          <button id="exportBtn">Exportar CSV</button>
+          <label for="importFile">Importar CSV</label>
+          <input type="file" id="importFile" accept=".csv">
+          <button id="clearBtn">Limpar Dados</button>
+        </div>
+        <div id="productForm">
+          <input type="text" id="name" placeholder="Nome do Produto">
+          <select id="category">
+            <option value="">Categoria</option>
+            <option>Iluminação</option>
+            <option>Cabos</option>
+            <option>Ferramentas</option>
+            <option>Automação</option>
+            <option>Componentes</option>
+          </select>
+          <input type="number" id="quantity" placeholder="Quantidade" min="0">
+          <input type="number" id="demand" placeholder="Demanda (%)" min="0" max="100">
+          <input type="text" id="image" placeholder="URL da Imagem">
+          <button id="addBtn">Adicionar</button>
+          <button id="cancelBtn" style="display:none; background:#6c757d">Cancelar</button>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+      <div class="panel">
+        <h2>Estoque &amp; Ranking</h2>
+        <input type="text" id="search" placeholder="Buscar..." style="width:100%; padding:0.5rem; margin-bottom:0.5rem;">
+        <div style="overflow-x: auto">
+          <table>
+            <thead>
+              <tr>
+                <th data-col="image">Imagem</th>
+                <th data-col="name">Nome</th>
+                <th data-col="category">Categoria</th>
+                <th data-col="quantity">Qtd</th>
+                <th data-col="demand">Demanda</th>
+                <th data-col="sold">Vendidos</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <h2>Ranking de Vendas</h2>
+        <ol id="ranking"></ol>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Gráfico de Vendas</h2>
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // Seleção de elementos
+    const nameInput = document.getElementById('name');
+    const categoryInput = document.getElementById('category');
+    const quantityInput = document.getElementById('quantity');
+    const demandInput = document.getElementById('demand');
+    const imageInput = document.getElementById('image');
+    const addBtn = document.getElementById('addBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const simulateBtn = document.getElementById('simulateBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const importFile = document.getElementById('importFile');
+    const clearBtn = document.getElementById('clearBtn');
+    const searchInput = document.getElementById('search');
+    const tableBody = document.getElementById('tableBody');
+    const rankingEl = document.getElementById('ranking');
+    const logDiv = document.getElementById('log');
+    const chartCtx = document.getElementById('chart').getContext('2d');
+
+    let products = JSON.parse(localStorage.getItem('products') || '[]');
+    let history = JSON.parse(localStorage.getItem('history') || '{}');
+    let editIndex = -1;
+    let chart;
+    let sortCol = null, sortDir = 1;
+
+    // Funções
+    function log(msg) {
+      logDiv.innerHTML = `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>` + logDiv.innerHTML;
+    }
+    function saveData() {
+      localStorage.setItem('products', JSON.stringify(products));
+      localStorage.setItem('history', JSON.stringify(history));
+    }
+    function clearData() {
+  if (!confirm('Deseja realmente resetar todos os dados e histórico de vendas?')) return;
+  products = [];
+  history = {};
+  localStorage.removeItem('products');
+  localStorage.removeItem('history');
+  saveData(); // importante para atualizar localStorage em branco
+  renderAll();
+  log('Dados e histórico resetados.');
+}
+    function exportCSV() {
+      const rows=[['Nome','Categoria','Qtd','Demanda','Vendidos','Imagem']];
+      products.forEach(p=>rows.push([p.name,p.category,p.quantity,p.demand,p.sold,p.image]));
+      const csv=rows.map(r=>r.join(',')).join('\n');
+      const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent(csv);a.download='estoque.csv';a.click();
+    }
+    function importCSV(e) {
+      const file=e.target.files[0];
+      const reader=new FileReader();
+      reader.onload=()=>{
+        reader.result.split('\n').slice(1).forEach(line=>{
+          if(!line) return;
+          const [n,c,q,d,s,img]=line.split(',');
+          products.push({name:n,category:c,quantity:+q,demand:+d,sold:+s,image:img});
+          history[n]=[0];
+        });
+        saveData(); renderAll(); log('CSV importado');
+      };
+      reader.readAsText(file);
+    }
+    function addOrEdit() {
+      const name=nameInput.value.trim(); if(!name) return alert('Preencha o nome');
+      const category=categoryInput.value; if(!category) return alert('Escolha categoria');
+      const quantity=+quantityInput.value;
+      const demand=+demandInput.value;
+      const image=imageInput.value.trim()||'https://via.placeholder.com/40';
+      if(editIndex>=0){
+        const old=products[editIndex].name;
+        if(old!==name) history[name]=history[old]||[0];
+        products[editIndex]={name,category,quantity,demand,image,sold:products[editIndex].sold};
+        log(`Editado: ${name}`);
+      } else {
+        if(products.some(p=>p.name===name)) return alert('Já existe');
+        products.push({name,category,quantity,demand,image,sold:0});
+        history[name]=[0];
+        log(`Adicionado: ${name}`);
+      }
+      editIndex=-1; resetForm(); saveData(); renderAll();
+    }
+    function resetForm(){
+      nameInput.value='';categoryInput.value='';quantityInput.value='';demandInput.value='';imageInput.value='';
+      addBtn.textContent='Adicionar';cancelBtn.style.display='none';
+    }
+    function startEdit(i){
+      editIndex=i;const p=products[i];
+      nameInput.value=p.name;categoryInput.value=p.category;quantityInput.value=p.quantity;demandInput.value=p.demand;imageInput.value=p.image;
+      addBtn.textContent='Salvar';cancelBtn.style.display='inline-block';window.scroll(0,0);
+    }
+    function simulateSales(){
+      products.forEach(p=>{
+        if(p.quantity>0&&Math.random()<p.demand/100){p.quantity--;p.sold++;const arr=history[p.name]||[0];history[p.name]=[...arr,arr[arr.length-1]+1];log(`Venda: ${p.name}`);}else if(history[p.name])history[p.name].push(history[p.name].slice(-1)[0]||0);
+      });saveData();renderAll();
+    }
+    function renderTable(){
+      const term=search.value.trim().toLowerCase();tableBody.innerHTML='';
+      let arr=products.filter(p=>p.name.toLowerCase().includes(term)||p.category.toLowerCase().includes(term));
+      if(sortCol)arr.sort((a,b)=>(a[sortCol]>b[sortCol]?sortDir:-sortDir));
+      arr.forEach((p,i)=>{const st=p.quantity===0?'Esgotado':p.quantity<=5?'Baixo':'OK';
+        tableBody.innerHTML+=`<tr class="${p.quantity<=5?'low-stock':''}"><td><img src="${p.image}" width="40"></td><td>${p.name}</td><td>${p.category}</td><td>${p.quantity}</td><td>${p.demand}%</td><td>${p.sold}</td><td>${st}</td><td><button onclick="startEdit(${i})">Editar</button></td></tr>`;
+      });
+    }
+    function renderRanking(){ranking.innerHTML=products.slice().sort((a,b)=>b.sold-a.sold).map(p=>`<li>${p.name}: ${p.sold}</li>`).join('');}
+    function renderChart(){if(chart)chart.destroy();const maxLen=Math.max(...Object.values(history).map(h=>h.length));const labels=Array.from({length:maxLen},(_,i)=>i+1);chart=new Chart(chartCtx,{type:'line',data:{labels,datasets:products.map((p,i)=>({label:p.name,data:history[p.name],borderColor:`hsl(${i*60%360},70%,50%)`,fill:false,tension:0.3}))},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});}function renderAll(){renderTable();renderRanking();renderChart();}
+    addBtn.onclick=addOrEdit;cancelBtn.onclick=resetForm;simulateBtn.onclick=simulateSales;exportBtn.onclick=exportCSV;importFile.onchange=importCSV;clearBtn.onclick=clearData;search.oninput=renderTable;document.querySelectorAll('th[data-col]').forEach(th=>th.onclick=()=>{const col=th.getAttribute('data-col');sortDir=(sortCol===col?-sortDir:1);sortCol=col;renderTable();});setInterval(simulateSales,5000);renderAll();
+  </script>
+</body>
+</html>
