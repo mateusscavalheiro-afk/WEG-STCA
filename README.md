@@ -1,0 +1,1 @@
+Desenvolvimento de software online para controle de estoque na loja fictícia Gartran, com funcionalidades de cadastro, edição e relatórios. Entrega em 60 dias por até R$7.000. Solução didática, sem integração financeira ou versão mobile, visando modernização e replicabilidade.
